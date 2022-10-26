@@ -138,13 +138,8 @@ if len(segTarget)>0:
                 "type": 'column',
                 "zoomType": 'x'
             },
-            "xAxis":{
-                "categories":cat,
-                # "min":0,
-                # "max":15,
-                # "scrollbar": {
-                #     "enabled": True
-                # }
+            "xAxis": {
+                "type": 'category'
             },
             "yAxis":{
                 "title":""
@@ -152,15 +147,20 @@ if len(segTarget)>0:
             "title": {
                 "text": ''
             },
-            "dataSorting":{
-                "enable":True
-            },
             "series": [
-                {
+                    {   "type": 'column',
+                        "dataSorting": {
+                            "enabled": True,
+                            "matchByName": True
+                        },
                     "name":"Actual Revenue",
                     "data": parsed
                     },
-                {
+                    {  "type": 'column',
+                        "dataSorting": {
+                            "enabled": True,
+                            "matchByName": True
+                        },
                     "name":"Simulated Revenue",
                     "data": parsedDisc,
                     "color":"red"
@@ -211,5 +211,6 @@ if len(segTarget)>0:
 # OK Show table with customer from segments and discount
 # OK Keboola Write Back
 # OK Gather Keboola creds
-# Layout the buckets and upload button
+# OKISHH Layout the buckets and upload button
 # OK Publish App
+# DOC: Get Keboola Token, Get Snowflake account, Explain Scenario, Explain Keboola token, Show Table in Keboola
