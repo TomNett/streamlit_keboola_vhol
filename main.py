@@ -121,8 +121,8 @@ if len(segTarget)>0:
     co,co1=st.columns(2)
     cur=dfAll.sum().REV
     sim=dfDisc.sum().REV
-    co.metric("Revenue Current",cur)
-    co1.metric("Revenue Impact",sim,str(round(((sim/cur)-1)*100,2)) + "%")
+    co.metric("Revenue Current","{:,.0f}€".format(cur).replace(',', ' '))
+    co1.metric("Revenue Impact","{:,.0f}€".format(sim).replace(',', ' '),str(round(((sim/cur)-1)*100,2)) + "%")
     chartdef2={
         "chart": {
                 "type": 'column',
@@ -163,6 +163,7 @@ if len(segTarget)>0:
 
 #TODO
 # OK Scrollbar in Highchart
+# Monetary KPI
 # Show table with customer from segments and discount
 # Keboola Write Back
-# Publish App
+# OK Publish App
