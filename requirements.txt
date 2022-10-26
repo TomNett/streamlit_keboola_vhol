@@ -2,3 +2,4 @@ streamlit==1.12.0
 streamlit-highcharts==0.1.5
 st-connection @ git+https://github.com/aalteirac/st_connection.git@4a7b1e72e8f2ceb155485523a4fd965d591a8af1
 snowflake-connector-python==2.7.12
+streamlit-keboola-api

@@ -1,21 +1,30 @@
+import os
 import streamlit as st
 import st_connection
 import st_connection.snowflake
 import pandas as pd
 import json
 import streamlit_highcharts as hct
+import keboola_api as kb
 
 session = st.connection.snowflake_connection.login({'user': 'KEBOOLA_WORKSPACE_26088314', 'password': '','account': 'keboola.west-europe.azure'}, { 'warehouse': 'KEBOOLA_PROD'}, 'Snowflake Login')
 
+def saveFile(df):
+    with open(os.path.join(os.getcwd(),str(session.session_id)+'.csv'),"w") as f:
+        f.write(df.to_csv(index=False))
+        return os.path.join(os.getcwd(),str(session.session_id)+'.csv')
 
-
+        
 st.markdown('''
 <style>
+.stButton > button:focus{
+    box-shadow:unset;
+}
 .main .block-container{
     max-width: unset;
     padding-left: 9em;
     padding-right: 9em;
-    padding-top: 1em;
+    padding-top: 1.5em;
     padding-bottom: 1em;
     }
 /*center metric label*/
@@ -159,11 +168,45 @@ if len(segTarget)>0:
             
     }
     hct.streamlit_highcharts(chartdef2)
-
+    with st.expander("Trigger Marketing Campaign"):
+        seg=",".join("'{0}'".format(w) for w in segTarget)
+        query=f'''SELECT RFM.CUSTOMER_ID, RFM.SEGMENT, CUST.CUSTOMER_EMAIL, '{discount}%' as DISCOUNT
+            FROM "bdm_rfm" as RFM
+            INNER JOIN "bdm_customers" as CUST
+            ON RFM.CUSTOMER_ID=CUST.CUSTOMER_ID
+            WHERE RFM.actual_state=true AND RFM.SEGMENT in ({seg});
+            '''
+        dfCust = pd.read_sql(query, session)
+        st.dataframe(dfCust,use_container_width=True)
+        kebUrl=st.selectbox("Select Keboola Region:",options= ["https://connection.north-europe.azure.keboola.com","https://connection.eu-central-1.keboola.com","https://connection.keboola.com"])
+        kebKey=st.text_input("Enter Keboola Token:")
+        if kebKey !="":
+            buckets=kb.keboola_bucket_list(
+                        keboola_URL=kebUrl,
+                        keboola_key=kebKey,
+                        label="GET BUCKETS",
+                        api_only=True,
+                        key="oneone"
+                )
+            bck=st.selectbox("Select Keboola Bucket:",key="bck",options= list(map(lambda v: v['id'], buckets)))
+            if bck is not None:
+                value = kb.keboola_upload(
+                    keboola_URL=kebUrl,
+                    keboola_key=kebKey,
+                    keboola_table_name="test",
+                    keboola_bucket_id=bck,
+                    keboola_file_path=saveFile(dfCust),
+                    keboola_primary_key=[""],
+                    label="UPLOAD SIMULATION",
+                    key="two"
+                )
+                value
 
 #TODO
 # OK Scrollbar in Highchart
-# Monetary KPI
-# Show table with customer from segments and discount
-# Keboola Write Back
+# OK Monetary KPI
+# OK Show table with customer from segments and discount
+# OK Keboola Write Back
+# OK Gather Keboola creds
+# Layout the buckets and upload button
 # OK Publish App
