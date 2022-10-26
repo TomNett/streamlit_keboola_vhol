@@ -4,9 +4,10 @@ import st_connection.snowflake
 import pandas as pd
 import json
 import streamlit_highcharts as hct
-st.set_page_config(layout="wide")
+
 session = st.connection.snowflake_connection.login({'user': 'KEBOOLA_WORKSPACE_26088314', 'password': '','account': 'keboola.west-europe.azure'}, { 'warehouse': 'KEBOOLA_PROD'}, 'Snowflake Login')
 
+st.set_page_config(layout="wide")
 
 st.markdown('''
 <style>
