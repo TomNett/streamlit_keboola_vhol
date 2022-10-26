@@ -1,9 +1,7 @@
 import streamlit as st
 import st_connection
 import st_connection.snowflake
-from streamlit_dbtree import streamlit_dbtree
 import pandas as pd
-import numpy as np
 import json
 import streamlit_highcharts as hct
 
