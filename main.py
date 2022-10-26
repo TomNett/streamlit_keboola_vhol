@@ -11,6 +11,13 @@ session = st.connection.snowflake_connection.login({'user': 'KEBOOLA_WORKSPACE_2
 
 st.markdown('''
 <style>
+.main .block-container{
+    max-width: unset;
+    padding-left: 9em;
+    padding-right: 9em;
+    padding-top: 1em;
+    padding-bottom: 1em;
+    }
 /*center metric label*/
 [data-testid="stMetricLabel"] > div:nth-child(1) {
     justify-content: center;
