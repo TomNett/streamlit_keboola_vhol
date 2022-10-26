@@ -7,6 +7,7 @@ import json
 import streamlit_highcharts as hct
 import keboola_api as kb
 
+st.sidebar.image("img.png", width=102)
 session = st.connection.snowflake_connection.login({'user': 'KEBOOLA_WORKSPACE_26088314', 'password': '','account': 'keboola.west-europe.azure'}, { 'warehouse': 'KEBOOLA_PROD'}, 'Snowflake Login')
 
 def saveFile(df):
@@ -42,7 +43,7 @@ st.markdown('''
 
 </style>
 ''', unsafe_allow_html=True)
-st.markdown("# RFM Segmentation")
+st.markdown("## RFM Segmentation")
 
 def getRevSplit(segment,discount,increase):
     ls=",".join("'{0}'".format(w) for w in segment)
@@ -168,39 +169,41 @@ if len(segTarget)>0:
             
     }
     hct.streamlit_highcharts(chartdef2)
-    with st.expander("Trigger Marketing Campaign"):
-        seg=",".join("'{0}'".format(w) for w in segTarget)
-        query=f'''SELECT RFM.CUSTOMER_ID, RFM.SEGMENT, CUST.CUSTOMER_EMAIL, '{discount}%' as DISCOUNT
-            FROM "bdm_rfm" as RFM
-            INNER JOIN "bdm_customers" as CUST
-            ON RFM.CUSTOMER_ID=CUST.CUSTOMER_ID
-            WHERE RFM.actual_state=true AND RFM.SEGMENT in ({seg});
-            '''
-        dfCust = pd.read_sql(query, session)
-        st.dataframe(dfCust,use_container_width=True)
-        kebUrl=st.selectbox("Select Keboola Region:",options= ["https://connection.north-europe.azure.keboola.com","https://connection.eu-central-1.keboola.com","https://connection.keboola.com"])
-        kebKey=st.text_input("Enter Keboola Token:")
-        if kebKey !="":
-            buckets=kb.keboola_bucket_list(
-                        keboola_URL=kebUrl,
-                        keboola_key=kebKey,
-                        label="GET BUCKETS",
-                        api_only=True,
-                        key="oneone"
-                )
-            bck=st.selectbox("Select Keboola Bucket:",key="bck",options= list(map(lambda v: v['id'], buckets)))
-            if bck is not None:
-                value = kb.keboola_upload(
+    # with st.expander("Trigger Marketing Campaign"):
+    st.markdown("## Trigger Marketing Campaign") 
+    seg=",".join("'{0}'".format(w) for w in segTarget)
+    query=f'''SELECT RFM.CUSTOMER_ID, RFM.SEGMENT, CUST.CUSTOMER_EMAIL, '{discount}%' as DISCOUNT
+        FROM "bdm_rfm" as RFM
+        INNER JOIN "bdm_customers" as CUST
+        ON RFM.CUSTOMER_ID=CUST.CUSTOMER_ID
+        WHERE RFM.actual_state=true AND RFM.SEGMENT in ({seg});
+        '''
+    dfCust = pd.read_sql(query, session)
+    st.dataframe(dfCust,use_container_width=True)
+    colU,colT=st.columns(2)
+    kebUrl=colU.selectbox("Select Keboola Region:",options= ["https://connection.north-europe.azure.keboola.com","https://connection.eu-central-1.keboola.com","https://connection.keboola.com"])
+    kebKey=colT.text_input("Enter Keboola Token:")
+    if kebKey !="":
+        buckets=kb.keboola_bucket_list(
                     keboola_URL=kebUrl,
                     keboola_key=kebKey,
-                    keboola_table_name="test",
-                    keboola_bucket_id=bck,
-                    keboola_file_path=saveFile(dfCust),
-                    keboola_primary_key=[""],
-                    label="UPLOAD SIMULATION",
-                    key="two"
-                )
-                value
+                    label="GET BUCKETS",
+                    api_only=True,
+                    key="oneone"
+            )
+        bck=st.selectbox("Select Keboola Bucket:",key="bck",options= list(map(lambda v: v['id'], buckets)))
+        if bck is not None:
+            value = kb.keboola_upload(
+                keboola_URL=kebUrl,
+                keboola_key=kebKey,
+                keboola_table_name="test",
+                keboola_bucket_id=bck,
+                keboola_file_path=saveFile(dfCust),
+                keboola_primary_key=[""],
+                label="UPLOAD SIMULATION",
+                key="two"
+            )
+            value
 
 #TODO
 # OK Scrollbar in Highchart
