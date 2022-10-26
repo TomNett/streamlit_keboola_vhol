@@ -130,11 +130,11 @@ if len(segTarget)>0:
             },
             "xAxis":{
                 "categories":cat,
-                "min":0,
-                "max":15,
-                "scrollbar": {
-                    "enabled": True
-                }
+                # "min":0,
+                # "max":15,
+                # "scrollbar": {
+                #     "enabled": True
+                # }
             },
             "yAxis":{
                 "title":""
