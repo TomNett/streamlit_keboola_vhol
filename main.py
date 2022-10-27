@@ -117,8 +117,8 @@ st.markdown("## Simulate Discount on Segments")
 segTarget=st.multiselect("Segment Target:",segment, default="Champions")  
 if len(segTarget)>0:
     c,c2=st.columns(2)
-    discount=c.slider("Discount on Target Segment:",min_value=0,max_value=50,step=5)
-    increase=c2.slider("Anticipated Sales Increase on Target Segment:",min_value=0,max_value=50)
+    discount=c.slider("Discount on Target Segment:",min_value=0,max_value=50,step=5,value=5)
+    increase=c2.slider("Anticipated Sales Increase on Target Segment:",min_value=0,max_value=50,value=10)
     df2=getRevSplit(segTarget,discount,increase)
     dfAll=df2.loc[df2['TYPE'].isin(['ALL','EXCEPT'])] 
     dfAll=dfAll.groupby('PR',as_index=False).sum()
