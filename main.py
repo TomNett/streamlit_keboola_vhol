@@ -1,4 +1,6 @@
+from datetime import datetime
 import os
+from time import sleep
 import streamlit as st
 import st_connection
 import st_connection.snowflake
@@ -8,10 +10,10 @@ import streamlit_highcharts as hct
 import keboola_api as kb
 
 st.sidebar.image("img.png", width=102)
-session = st.connection.snowflake_connection.login({'user': 'KEBOOLA_WORKSPACE_26088314', 'password': '','account': 'keboola.west-europe.azure'}, { 'warehouse': 'KEBOOLA_PROD'}, 'Snowflake Login')
+session = st.connection.snowflake_connection.login({'user': '', 'password': '','account': ''}, { 'database': 'SHOP_DB', 'schema': 'SHOP_SC','warehouse': 'SHOP_WH'}, 'Snowflake Login')
 
 def saveFile(df):
-    with open(os.path.join(os.getcwd(),str(session.session_id)+'.csv'),"w") as f:
+    with open(os.path.join(os.getcwd(),str(session.session_id)+'.csv'),"w") as f: 
         f.write(df.to_csv(index=False))
         return os.path.join(os.getcwd(),str(session.session_id)+'.csv')
 
@@ -92,13 +94,14 @@ ORDER BY REV DESC;
     df = pd.read_sql(queryAll, session)
     return df
 
-query=f'''SELECT SEGMENT, COUNT(*) as c
+query=f'''
+    SELECT SEGMENT, COUNT(*) as c
     FROM "bdm_rfm" 
     WHERE actual_state=true
-    GROUP BY SEGMENT'''
+    GROUP BY SEGMENT;'''
 df = pd.read_sql(query, session)
-cols=st.columns(4)
-cols2=st.columns(4)
+cols=st.columns(5)
+cols2=st.columns(3)
 allc=cols+cols2
 for index, k in df.iterrows():
     with allc[index-1]:
@@ -187,23 +190,28 @@ if len(segTarget)>0:
         buckets=kb.keboola_bucket_list(
                     keboola_URL=kebUrl,
                     keboola_key=kebKey,
-                    label="GET BUCKETS",
-                    api_only=True,
+                    label=" GET BUCKETS",
+                    api_only=False,
                     key="oneone"
             )
-        bck=st.selectbox("Select Keboola Bucket:",key="bck",options= list(map(lambda v: v['id'], buckets)))
-        if bck is not None:
+        if type(buckets)!=str:
+            colU,cc=st.columns(2)
+            bck=colU.selectbox("Select Keboola Bucket:",key="bck",options= list(map(lambda v: v['id'], buckets)))
+            date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
             value = kb.keboola_upload(
                 keboola_URL=kebUrl,
                 keboola_key=kebKey,
-                keboola_table_name="test",
+                keboola_table_name="Marketing_Discount_" +date_time,
                 keboola_bucket_id=bck,
                 keboola_file_path=saveFile(dfCust),
                 keboola_primary_key=[""],
-                label="UPLOAD SIMULATION",
+                label="UPLOAD TABLE",
                 key="two"
             )
             value
+        else:
+            buckets
+            del st.session_state['oneone']
 
 #TODO
 # OK Scrollbar in Highchart
@@ -211,6 +219,21 @@ if len(segTarget)>0:
 # OK Show table with customer from segments and discount
 # OK Keboola Write Back
 # OK Gather Keboola creds
-# OKISHH Layout the buckets and upload button
+# OK Layout the buckets and upload button
 # OK Publish App
-# DOC: Get Keboola Token, Get Snowflake account, Explain Scenario, Explain Keboola token, Show Table in Keboola
+
+
+# OK Get Keboola Token, 
+# OK Get Snowflake account, 
+# OK Explain Scenario, 
+# OK Explain Keboola token, 
+
+
+# OK Show Table in Keboola
+# OK Generate Table Name
+# OK Set the DB NAME
+
+# Write list of steps for troubleshooting
+# OK Wrong first screenshot for keboola DWH
+
+#Publish doc in temp
