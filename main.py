@@ -114,8 +114,8 @@ segment = pd.read_sql(query, session)
 
 st.markdown("## Simulate Discount on Segments") 
 
-segTarget=st.multiselect("Segment Target:",segment, default=["Champions","Hibernating customers","Loyal","Need Attention"]) 
-if len(segTarget)>0:
+segTarget=st.multiselect("Segment Target:",segment, default=["Champions","Hibernating customers","Loyal","Need Attention"])
+if len(segTarget)>0: 
     c,c2=st.columns(2)
     discount=c.slider("Discount on Target Segment:",min_value=0,max_value=50,step=5,value=5)
     increase=c2.slider("Anticipated Sales Increase on Target Segment:",min_value=0,max_value=50,value=10)
