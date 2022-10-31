@@ -10,7 +10,8 @@ import streamlit_highcharts as hct
 import keboola_api as kb
 
 st.sidebar.image("img.png", width=102)
-session = st.connection.snowflake_connection.login({'user': '', 'password': '','account': ''}, { 'database': 'SHOP_DB', 'schema': 'SHOP_SC','warehouse': 'SHOP_WH'}, 'Snowflake Login')
+session = st.connection.snowflake_connection.login({'user': '', 'password': None,'account': ''}, { 'database': 'SHOP_DB', 'schema': 'SHOP_SC','warehouse': 'SHOP_WH'}, 'Snowflake Login')
+
 
 def saveFile(df):
     with open(os.path.join(os.getcwd(),str(session.session_id)+'.csv'),"w") as f: 
