@@ -4,14 +4,24 @@ from time import sleep
 import streamlit as st
 import st_connection
 import st_connection.snowflake
+import st_connection.keboola.keboola_connection
 import pandas as pd
 import json
 import streamlit_highcharts as hct
 import keboola_api as kb
 
 st.sidebar.image("img.png", width=102)
-session = st.connection.snowflake_connection.login({'user': '', 'password': None,'account': ''}, { 'database': 'SHOP_DB', 'schema': 'SHOP_SC','warehouse': 'SHOP_WH'}, 'Snowflake Login')
+session = st.connection.snowflake_connection.login({'user': '', 'password': None,'account': ''}, { 'database': 'SHOP_DB', 'schema': 'SHOP_SC','warehouse': 'SHOP_WH'}, 'Snowflake Login',disconnected_label="Disconnect Snowflake")
 
+keb_session = st.connection.keboola_connection.login({'URL':['https://connection.north-europe.azure.keboola.com','https://connection.eu-central-1.keboola.com','https://connection.keboola.com'],'Token':None}, 'Keboola Login', disconnected_label="Disconnect Keboola")
+
+buckets=kb.keboola_bucket_list(
+                keboola_URL=keb_session.root_url,
+                keboola_key=keb_session.token,
+                label=" GET BUCKETS",
+                api_only=True,
+                key="oneone"
+        )
 
 def saveFile(df):
     with open(os.path.join(os.getcwd(),str(session.session_id)+'.csv'),"w") as f: 
@@ -184,36 +194,20 @@ if len(segTarget)>0:
         '''
     dfCust = pd.read_sql(query, session)
     st.dataframe(dfCust,use_container_width=True)
-    colU,colT=st.columns(2)
-    kebUrl=colU.selectbox("Select Keboola Region:",options= ["https://connection.north-europe.azure.keboola.com","https://connection.eu-central-1.keboola.com","https://connection.keboola.com"])
-    kebKey=colT.text_input("Enter Keboola Token:")
-    if kebKey !="":
-        buckets=kb.keboola_bucket_list(
-                    keboola_URL=kebUrl,
-                    keboola_key=kebKey,
-                    label=" GET BUCKETS",
-                    api_only=False,
-                    key="oneone"
-            )
-        if type(buckets)!=str:
-            colU,cc=st.columns(2)
-            bck=colU.selectbox("Select Keboola Bucket:",key="bck",options= list(map(lambda v: v['id'], buckets)))
-            date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
-            value = kb.keboola_upload(
-                keboola_URL=kebUrl,
-                keboola_key=kebKey,
-                keboola_table_name="Marketing_Discount_" +date_time,
-                keboola_bucket_id=bck,
-                keboola_file_path=saveFile(dfCust),
-                keboola_primary_key=[""],
-                label="UPLOAD TABLE",
-                key="two"
-            )
-            value
-        else:
-            buckets
-            del st.session_state['oneone']
-
+    colB,cc=st.columns(2)    
+    bck=colB.selectbox("Select Keboola Bucket:",key="bck",options= list(map(lambda v: v['id'], buckets)))
+    date_time = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
+    value = kb.keboola_upload(
+        keboola_URL=keb_session.root_url,
+        keboola_key=keb_session.token,
+        keboola_table_name="Marketing_Discount_" +date_time,
+        keboola_bucket_id=bck,
+        keboola_file_path=saveFile(dfCust),
+        keboola_primary_key=[""],
+        label="UPLOAD TABLE",
+        key="two"
+    )
+    value
 #TODO
 # OK Scrollbar in Highchart
 # OK Monetary KPI
