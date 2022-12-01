@@ -10,7 +10,7 @@ import json
 import streamlit_highcharts as hct
 import keboola_api as kb
 
-st.sidebar.image("img.png", width=102)
+st.sidebar.image("./img.png", width=102)
 session = st.connection.snowflake_connection.login({'user': '', 'password': None,'account': ''}, { 'database': 'SHOP_DB', 'schema': 'SHOP_SC','warehouse': 'SHOP_WH'}, form_title='Snowflake Login',disconnected_label="Disconnect Snowflake")
 
 keb_session = st.connection.keboola_connection.login({'URL':['https://connection.north-europe.azure.keboola.com','https://connection.eu-central-1.keboola.com','https://connection.keboola.com'],'Token':None}, form_title='Keboola Login', disconnected_label="Disconnect Keboola")
@@ -27,8 +27,7 @@ def saveFile(df):
     with open(os.path.join(os.getcwd(),str(session.session_id)+'.csv'),"w") as f: 
         f.write(df.to_csv(index=False))
         return os.path.join(os.getcwd(),str(session.session_id)+'.csv')
-
-        
+       
 st.markdown('''
 <style>
 .stButton > button:focus{
