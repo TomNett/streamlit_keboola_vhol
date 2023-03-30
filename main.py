@@ -2,7 +2,6 @@ from datetime import datetime
 import os
 from time import sleep
 import streamlit as st
-import st_connection
 import st_connection.snowflake
 import st_connection.keboola.keboola_connection
 import pandas as pd
@@ -11,9 +10,45 @@ import streamlit_highcharts as hct
 import keboola_api as kb
 
 st.sidebar.image("./img.png", width=102)
-session = st.connection.snowflake_connection.login({'user': '', 'password': None,'account': ''}, { 'database': 'SHOP_DB', 'schema': 'SHOP_SC','warehouse': 'SHOP_WH'}, form_title='Snowflake Login',disconnected_label="Disconnect Snowflake")
+session = st.connection.snowflake_connection.login({'user': '', 'password': None,'account': ''}, { 'warehouse': 'SHOP_WH'}, form_title='Snowflake Login',disconnected_label="Disconnect Snowflake")
 
 keb_session = st.connection.keboola_connection.login({'URL':['https://connection.north-europe.azure.keboola.com','https://connection.eu-central-1.keboola.com','https://connection.keboola.com'],'Token':None}, form_title='Keboola Login', disconnected_label="Disconnect Keboola")
+
+#get the db and schema dynamically
+query=f'''
+    show tables;
+    '''
+tb = pd.read_sql(query, session)
+
+query=f'''
+    show warehouses;
+    '''
+wh = pd.read_sql(query, session)
+
+try:
+    whname=wh.loc[wh['name'] == 'KEBOOLA_PROD']['name'].values[0] 
+except:
+  whname="SHOP_WH"
+
+try:
+    dbname=tb.loc[tb['name'] == 'bdm_rfm']['database_name'].values[0] 
+    scname=tb.loc[tb['name'] == 'bdm_rfm']['schema_name'].values[0] 
+    whname=tb.loc[tb['name'] == 'KEBOOLA_PROD']['schema_name'].values[0] 
+except:
+  st.write("Could find the necessary tables")
+
+query=f'''
+use warehouse {whname}; 
+'''
+pd.read_sql(query,session)
+query=f'''
+use database {dbname}; 
+'''
+pd.read_sql(query,session)
+query=f'''
+use schema {scname}; 
+'''
+pd.read_sql(query,session)
 
 buckets=kb.keboola_bucket_list(
                 keboola_URL=keb_session.root_url,
@@ -117,7 +152,7 @@ for index, k in df.iterrows():
     with allc[index-1]:
         st.metric(k['SEGMENT'],k['C'])
 query=f'''
-    SELECT DISTINCT SEGMENT FROM "bdm_rfm";
+    SELECT DISTINCT SEGMENT FROM {dbname}.{scname}."bdm_rfm";
 '''
 segment = pd.read_sql(query, session)
 
