@@ -9,7 +9,7 @@ import json
 import streamlit_highcharts as hct
 import keboola_api as kb
 
-st.sidebar.image("/data/in/files/img.png", width=102)
+# st.sidebar.image("/data/in/files/img.png", width=102)
 # session = st.connection.snowflake_connection.login({'user': '', 'password': None,'account': ''}, { 'warehouse': 'SHOP_WH'}, form_title='Snowflake Login',disconnected_label="Disconnect Snowflake")
 
 # keb_session = st.connection.keboola_connection.login({'URL':['https://connection.north-europe.azure.keboola.com','https://connection.eu-central-1.keboola.com','https://connection.keboola.com'],'Token':None}, form_title='Keboola Login', disconnected_label="Disconnect Keboola")
