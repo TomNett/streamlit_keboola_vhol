@@ -5,7 +5,6 @@ import st_connection.keboola.keboola_connection
 import pandas as pd
 import streamlit_highcharts as hct
 import keboola_api as kb
-import snowflake-snowpark-python
 
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import udf, col, lit, is_null, iff, initcap
