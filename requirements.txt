@@ -4,4 +4,4 @@ st-connection @ git+https://github.com/aalteirac/st_connection.git
 snowflake-connector-python==2.7.12
 streamlit-keboola-api==0.1.8
 git+https://github.com/keboola/sapi-python-client.git
-snowflake-snowpark
+snowflake-snowpark-python
