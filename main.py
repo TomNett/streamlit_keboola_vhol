@@ -1,10 +1,8 @@
 from datetime import datetime
 import os
-from time import sleep
 import streamlit as st
 import st_connection.keboola.keboola_connection
 import pandas as pd
-import json
 import streamlit_highcharts as hct
 import keboola_api as kb
 
