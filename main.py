@@ -6,10 +6,6 @@ import pandas as pd
 import streamlit_highcharts as hct
 import keboola_api as kb
 
-from snowflake.snowpark import Session
-from snowflake.snowpark.functions import udf, col, lit, is_null, iff, initcap
-from keboola.component import CommonInterface
-
 # Set logo image path and put in on to the right top
 logo_image = "/data/in/files/img.png"
 logo_html = f'<div style="display: flex; justify-content: flex-end;"><img src="data:image/png;base64,{base64.b64encode(open(logo_image, "rb").read()).decode()}" style="width: 100px; margin-left: -10px;"></div>'
@@ -48,46 +44,7 @@ st.markdown('''
 ''', unsafe_allow_html=True)
 st.markdown("## RFM Segmentation")
 
-# Setting up connection parameters from variables stored in the Workspace's environment
-ci = CommonInterface()
-connection_parameters = ci.configuration.workspace_credentials
-connection_parameters['account'] = 'keboola'
-
-# Initiate the session
-try:
-    session = Session.builder.configs(connection_parameters).create()
-    print('Session successfully initiated!', 
-          'You are now working at',
-          session.get_fully_qualified_current_schema())
-except Exception as e:
-    print('Session creation failed with:', 
-          str(e))
-    
-# Create and register the UDF RFM Analysis function
-@udf(name="RFM_analysis", replace=True, session = session)
-
-def RFM_analysis(df: DataFrame) -> DataFrame:
-    """
-    Parameters:
-    - df: Input DataFrame containing customer transactions.
-    
-    Returns:
-    - DataFrame with RFM analysis.
-    """
-# The bdm_orders table has columns: customer_id, order_date, order_total_price_with_taxes  
-# Calculate Recency
-    max_date = df.agg(max("order_date")).collect()[0][0]
-    recency_df = df.groupBy("customer_id").agg((max_date - max("order_date")).alias("recency"))
-    
-# Calculate Frequency
-    frequency_df = df.groupBy("customer_id").agg(count("*").alias("frequency"))
-    
-# Calculate Monetary
-    monetary_df = df.groupBy("customer_id").agg(sum("order_total_price_with_taxes").alias("monetary"))
-    
-# Merge all the metrics
-    rfm_df = recency_df.join(frequency_df, "customer_id").join(monetary_df, "customer_id")
-    
+  
 
 st.markdown("## Simulate Discount on Segments") 
 
