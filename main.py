@@ -2,17 +2,20 @@ from datetime import datetime
 import os
 from time import sleep
 import streamlit as st
-import st_connection.snowflake
 import st_connection.keboola.keboola_connection
 import pandas as pd
 import json
 import streamlit_highcharts as hct
 import keboola_api as kb
 
-st.sidebar.image("/data/in/files/img.png", width=102)
-# session = st.connection.snowflake_connection.login({'user': '', 'password': None,'account': ''}, { 'warehouse': 'SHOP_WH'}, form_title='Snowflake Login',disconnected_label="Disconnect Snowflake")
+from snowflake.snowpark import Session
+from snowflake.snowpark.functions import udf, col, lit, is_null, iff, initcap
+from keboola.component import CommonInterface
 
-# keb_session = st.connection.keboola_connection.login({'URL':['https://connection.north-europe.azure.keboola.com','https://connection.eu-central-1.keboola.com','https://connection.keboola.com'],'Token':None}, form_title='Keboola Login', disconnected_label="Disconnect Keboola")
+# Set logo image path and put in on to the right top
+logo_image = "/data/in/files/img.png"
+logo_html = f'<div style="display: flex; justify-content: flex-end;"><img src="data:image/png;base64,{base64.b64encode(open(logo_image, "rb").read()).decode()}" style="width: 100px; margin-left: -10px;"></div>'
+st.markdown(f"{logo_html}", unsafe_allow_html=True)
 
 # Read the CSV file
 file_path = "/data/in/tables/full.csv"
@@ -47,70 +50,46 @@ st.markdown('''
 ''', unsafe_allow_html=True)
 st.markdown("## RFM Segmentation")
 
-def getRevSplit(segment,discount,increase):
-    ls=",".join("'{0}'".format(w) for w in segment)
-    if ls=="":
-        ls="''"
-    queryAll=f'''
-SELECT ALLSELL.TYPE,ALLSELL.product_manufacturer as PR, ROUND(sum(ALLSELL.DISC),0) AS REV
-FROM
-    (SELECT 'DISC' as TYPE,P.product_manufacturer, O.ORDER_LINE_PRICE_WITH_TAXES as Sales, ((Sales*{1+(increase/100)}) - Sales*{(discount/100)}) as DISC ,O.ORDER_ID, C.CUSTOMER_ID,RF.SEGMENT
-        FROM "bdm_order_lines" as O 
-        INNER JOIN "bdm_products" as P 
-        ON P.PRODUCT_ID=O.ORDER_LINE_PRODUCT_ID
-        INNER JOIN "bdm_orders" as OS
-        ON O.ORDER_ID=OS.ORDER_ID
-        INNER JOIN "bdm_customers" as C
-        ON OS.CUSTOMER_ID=C.customer_id
-        INNER JOIN "bdm_rfm" as RF
-        ON RF.CUSTOMER_ID=C.customer_id WHERE RF.SEGMENT IN ({ls})
-    UNION (
-        (SELECT 'ALL' as TYPE,P.product_manufacturer, O.ORDER_LINE_PRICE_WITH_TAXES as Sales, Sales as DISC ,O.ORDER_ID,                      C.CUSTOMER_ID,RF.SEGMENT
-        FROM "bdm_order_lines" as O 
-        INNER JOIN "bdm_products" as P 
-        ON P.PRODUCT_ID=O.ORDER_LINE_PRODUCT_ID
-        INNER JOIN "bdm_orders" as OS
-        ON O.ORDER_ID=OS.ORDER_ID
-        INNER JOIN "bdm_customers" as C
-        ON OS.CUSTOMER_ID=C.customer_id
-        INNER JOIN "bdm_rfm" as RF
-        ON RF.CUSTOMER_ID=C.customer_id WHERE RF.SEGMENT NOT IN ({ls}) )
-     UNION(
-        SELECT 'EXCEPT' as TYPE,P.product_manufacturer, O.ORDER_LINE_PRICE_WITH_TAXES as Sales, Sales as DISC ,O.ORDER_ID, C.CUSTOMER_ID,RF.SEGMENT
-        FROM "bdm_order_lines" as O 
-        INNER JOIN "bdm_products" as P 
-        ON P.PRODUCT_ID=O.ORDER_LINE_PRODUCT_ID
-        INNER JOIN "bdm_orders" as OS
-        ON O.ORDER_ID=OS.ORDER_ID
-        INNER JOIN "bdm_customers" as C
-        ON OS.CUSTOMER_ID=C.customer_id
-        INNER JOIN "bdm_rfm" as RF
-        ON RF.CUSTOMER_ID=C.customer_id WHERE RF.SEGMENT IN ({ls})
-     )   
-    )) as ALLSELL
-GROUP BY ALLSELL.product_manufacturer, ALLSELL.TYPE
-ORDER BY REV DESC;
-'''
-    df = pd.read_sql(queryAll, session)
-    return df
+# Setting up connection parameters from variables stored in the Workspace's environment
+ci = CommonInterface()
+connection_parameters = ci.configuration.workspace_credentials
+connection_parameters['account'] = 'keboola'
 
-query=f'''
-    SELECT SEGMENT, COUNT(*) as c
-    FROM "bdm_rfm" 
-    WHERE actual_state=true
-    GROUP BY SEGMENT;'''
-df = pd.read_sql(query, session)
-cols=st.columns(5)
-cols2=st.columns(3)
-allc=cols+cols2
-for index, k in df.iterrows():
-    with allc[index-1]:
-        st.metric(k['SEGMENT'],k['C'])
-query=f'''
-    SELECT DISTINCT SEGMENT FROM {dbname}.{scname}."bdm_rfm";
-'''
-segment = pd.read_sql(query, session)
+# Initiate the session
+try:
+    session = Session.builder.configs(connection_parameters).create()
+    print('Session successfully initiated!', 
+          'You are now working at',
+          session.get_fully_qualified_current_schema())
+except Exception as e:
+    print('Session creation failed with:', 
+          str(e))
+    
+# Create and register the UDF RFM Analysis function
+@udf(name="RFM_analysis", replace=True, session = session)
 
+def RFM_analysis(df: DataFrame) -> DataFrame:
+    """
+    Parameters:
+    - df: Input DataFrame containing customer transactions.
+    
+    Returns:
+    - DataFrame with RFM analysis.
+    """
+# The bdm_orders table has columns: customer_id, order_date, order_total_price_with_taxes  
+# Calculate Recency
+    max_date = df.agg(max("order_date")).collect()[0][0]
+    recency_df = df.groupBy("customer_id").agg((max_date - max("order_date")).alias("recency"))
+    
+# Calculate Frequency
+    frequency_df = df.groupBy("customer_id").agg(count("*").alias("frequency"))
+    
+# Calculate Monetary
+    monetary_df = df.groupBy("customer_id").agg(sum("order_total_price_with_taxes").alias("monetary"))
+    
+# Merge all the metrics
+    rfm_df = recency_df.join(frequency_df, "customer_id").join(monetary_df, "customer_id")
+    
 
 st.markdown("## Simulate Discount on Segments") 
 
@@ -198,26 +177,9 @@ if len(segTarget)>0:
     )
     value
 #TODO
-# OK Scrollbar in Highchart
-# OK Monetary KPI
-# OK Show table with customer from segments and discount
-# OK Keboola Write Back
-# OK Gather Keboola creds
-# OK Layout the buckets and upload button
-# OK Publish App
-
-
-# OK Get Keboola Token, 
-# OK Get Snowflake account, 
-# OK Explain Scenario, 
-# OK Explain Keboola token, 
-
-
-# OK Show Table in Keboola
-# OK Generate Table Name
-# OK Set the DB NAME
-
 # Write list of steps for troubleshooting
-# OK Wrong first screenshot for keboola DWH
+# create Snowpark UDF function
+# Call the udf function
+# Add button to Save data back to Keboola (trough storage client)
 
 #Publish doc in temp
